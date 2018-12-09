@@ -23,7 +23,7 @@ public class HttpRequest {
     public HttpRequest(String request) {
         String[] lines = request.split("\n");
         String[] firstHeader = lines[0].split(" ");
-        HttpMethod method = HttpMethod.valueOf(firstHeader[0]);
+        HttpMethod method = HttpMethod.valueOf(firstHeader[0].trim());
         String URL = firstHeader[1];
         String version = firstHeader[2];
         Map<String,String> headers = new HashMap<>();

@@ -1,9 +1,9 @@
 package com.fmi.mpr.hw.http;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.Socket;
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class ClientResponderService extends Thread {
 
@@ -13,16 +13,32 @@ public class ClientResponderService extends Thread {
         this.socket = socket;
     }
 
+    private HttpResponse respond(HttpRequest request) {
+        HttpResponse response = new HttpResponse();
+        response.setVersion(request.getVersion());
+        if(request.getMethod() == HttpMethod.GET)  {
+            if(Files.notExists(Paths.get("/repository" + request.getURL()))) {
+                response.setStatus("404 Not Found");
+                return response;
+            }
+        }
+        return response;
+    }
+
     @Override
     public void run() {
-        try(InputStream inputStream = socket.getInputStream()) {
-            byte[] buffer = new byte[8192];
-            int count;
+        try(BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            OutputStream outputStream = socket.getOutputStream()) {
             StringBuilder sb = new StringBuilder();
-            while((count = inputStream.read(buffer)) > 0) {
-                sb.append(new String(Arrays.copyOfRange(buffer, 0, count)));
+            String line;
+            while(!(line = br.readLine()).equals("")) {
+                sb.append(line + "\n");
             }
             HttpRequest request = new HttpRequest(sb.toString());
+            HttpResponse response = respond(request);
+            outputStream.write(response.toString().getBytes("UTF-8"));
+            outputStream.flush();
+            socket.close();
         } catch (IOException e) {
             throw new RuntimeException(e); //TODO
         }
