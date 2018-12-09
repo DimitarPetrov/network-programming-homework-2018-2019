@@ -10,10 +10,12 @@ public class HttpServer {
 
     public static void main(String[] args) {
         try(ServerSocket ss = new ServerSocket(PORT)) {
+
             while(true) {
                 Socket clientSocket = ss.accept();
                 new ClientResponderService(clientSocket).start();
             }
+
         } catch (IOException e) {
             System.err.println("Error starting the server:" + e.getMessage());
             throw new RuntimeException(e);

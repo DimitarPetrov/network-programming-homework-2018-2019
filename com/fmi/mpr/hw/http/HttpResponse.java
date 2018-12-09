@@ -9,10 +9,11 @@ public class HttpResponse {
     private String version = "";
     private String status = "";
     private Map<String,String> headers;
-    private String body = "";
+    private  byte[] body;
 
     public HttpResponse() {
         headers = new HashMap<>();
+        body = new byte[0];
     }
 
     public String getStatus() {
@@ -31,11 +32,11 @@ public class HttpResponse {
         this.headers = headers;
     }
 
-    public String getBody() {
+    public byte[] getBody() {
         return body;
     }
 
-    public void setBody(String body) {
+    public void setBody(byte[] body) {
         this.body = body;
     }
 
@@ -63,7 +64,6 @@ public class HttpResponse {
             sb.append(entry.getKey() + ": " + entry.getValue() + "\r\n");
         }
         sb.append("\r\n");
-        sb.append(body);
         return sb.toString();
     }
 }
