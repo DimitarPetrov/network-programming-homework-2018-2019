@@ -49,8 +49,7 @@ public class ClientResponderService extends Thread {
         Path filePath = Paths.get(REPOSITORY_PATH + request.getURL());
 
         if (Files.notExists(filePath)) {
-            response.setStatus("404 Not Found");
-            return response;
+            return responseFromText("File Not Found", "404 Not Found");
         }
 
         //String type = Files.probeContentType(filePath); // Best solution but does not work on mac-os.
@@ -91,7 +90,8 @@ public class ClientResponderService extends Thread {
         return null;
     }
 
-    private HttpRequest extractRequest(BufferedReader br) throws IOException {
+    private HttpRequest extractRequest() throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         StringBuilder sb = new StringBuilder();
         String line;
         while (!(line = br.readLine()).equals("")) {
@@ -100,27 +100,59 @@ public class ClientResponderService extends Thread {
         return new HttpRequest(sb.toString());
     }
 
-    private void sendResponse(OutputStream outputStream, HttpResponse response) throws IOException {
+    private void sendResponse(HttpResponse response) throws IOException {
+        OutputStream outputStream = socket.getOutputStream();
         outputStream.write(response.toString().getBytes());
         outputStream.write(response.getBody());
         outputStream.flush();
     }
 
+    private HttpResponse responseFromText(String text, String status) {
+        HttpResponse response = new HttpResponse();
+        response.setVersion("HTTP/1.1");
+        response.setStatus(status);
+        response.setHeader("Content-type", "text/html");
+        response.setBody(new String("<!DOCTYPE html>\n" +
+            "<html>\n" +
+                "<head>\n" +
+                "	<title></title>\n" +
+                "</head>\n" +
+                "<body>\n" +
+                "<h1>" + text + "</h1>" +
+                "</body>\n" +
+            "</html>").getBytes());
+        return response;
+    }
+
 
     @Override
     public void run() {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             OutputStream outputStream = socket.getOutputStream()) {
-
-            HttpRequest request = extractRequest(br);
+        try{
+            HttpRequest request = extractRequest();
             HttpResponse response = serveRequest(request);
 
-            sendResponse(outputStream, response);
+            sendResponse(response);
 
-            socket.close();
         } catch (IOException e) {
             System.err.println("I/O Error: " + e.getMessage());
             throw new RuntimeException(e);
+
+        } catch (UnknownTypeException e) {
+
+            try {
+                sendResponse(responseFromText("Unknown File Type!", "422 Unprocessable Entity"));
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+
+        } finally {
+
+            try {
+                socket.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
         }
     }
 }
